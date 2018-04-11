@@ -147,7 +147,8 @@ const calcGroupedEstimatesAvg = (gEstimates) => {
     groupedEstimates[key] = Object.assign({}, estType, {
       avgCostPerGwei,
       avgWaitTimeInMin,
-      label: key + ' < ' + Math.ceil(avgWaitTimeInMin) + 'm'
+      label: key + ' < ' + Math.ceil(avgWaitTimeInMin) + 'm',
+      type: key
     });
   });
   return groupedEstimates;
