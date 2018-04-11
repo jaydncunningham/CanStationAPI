@@ -1,5 +1,6 @@
 {
   "projects": {
-    "gasstation-api": "canyagasstation"
+    "gasstation-api": "canyagasstation",
+    "default": "canyagasstation-a98a8"
   }
 }

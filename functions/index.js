@@ -1,10 +1,22 @@
-const functions = require('firebase-functions');
-
 // libs
 const app = require('express')();
+const cors = require('cors');
 const request = require('request');
+const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+
+// Firebase supports Node 6.11.5 which doesn't has Object.values 
+const getObjectValues =  obj => Object.keys(obj).map(prop => obj[prop]);
+Object.values = Object.values || getObjectValues;
+
+//init
 admin.initializeApp();
+
+const corsOptions = {
+  origin: [/localhost/, /^canyagasstation$/, /gasstation.canya\.[com|io]+/]
+};
+
+app.use(cors(corsOptions));
 
 // vars
 const gasEstimatesRef = admin.database().ref('/gas-estimates');
@@ -36,12 +48,15 @@ https://ethgasstation.info/json/ethgasAPI.json
 app.post('/gas-estimate', (req, res) => {
   getURL().then(body => {
       // Format & push formated estimates to the firebase store
-      formatEthGasInfoEstimatesToArray(body).forEach(gasEstimatesRef.push);
+      formatEthGasInfoEstimatesToArray(body).forEach(item => gasEstimatesRef.push(item));
 
       // don't need to wait for the db insertion results
       return res.sendStatus(200);
     })
-    .catch(err => res.status('400').json(err));
+    .catch(err => {
+      console.log('posting gas-estimate error: ', err);
+      res.status('400').json(err);
+    });
 });
 
 app.get('/gas-estimate/average', (req, res) => {
@@ -54,7 +69,7 @@ app.get('/gas-estimate/average', (req, res) => {
   });
 });
 
-app.get('/gas-estimate', (req, res) => {  
+app.get('/gas-estimate', (req, res) => {
   // estimates stored every 1 minute and each estimate creates 4 records
   // 240 records represents last 60 minute estimates (60 * 4 = 240)
   gasEstimatesRef.limitToLast(240).once("value", snapshot => {
@@ -68,28 +83,28 @@ app.get('/gas-estimate', (req, res) => {
 // @Output: List of estimates where each estimate has properties (type, costPerGwei, waitTImeInMin, blockNum, createdAt)
 const formatEthGasInfoEstimatesToArray = (estimateObject) => {
   return [{
-      type: 'fastest',
+      type: 'Fastest',
       costPerGwei: Number(estimateObject.fastest) / Number(estimateObject.average_calc),
       waitTimeInMin: estimateObject.fastestWait,
       blockNum: estimateObject.blockNum,
       createdAt: Date.now(),
     },
     {
-      type: 'fast',
+      type: 'Fast',
       costPerGwei: Number(estimateObject.fast) / Number(estimateObject.average_calc),
       waitTimeInMin: estimateObject.fastWait,
       blockNum: estimateObject.blockNum,
       createdAt: Date.now()
     },
     {
-      type: 'standard',
+      type: 'Standard',
       costPerGwei: Number(estimateObject.average) / Number(estimateObject.average_calc),
       waitTimeInMin: estimateObject.avgWait,
       blockNum: estimateObject.blockNum,
       createdAt: Date.now(),
     },
     {
-      type: 'safelow',
+      type: 'Safelow',
       costPerGwei: Number(estimateObject.safeLow) / Number(estimateObject.safelow_calc),
       waitTimeInMin: estimateObject.safeLowWait,
       blockNum: estimateObject.blockNum,
@@ -111,7 +126,7 @@ const groupEstimates = (pEstimates) => {
   };
 
   Object.values(estimates).forEach(est => {
-    groupedEstimates[est.type] = groupedEstimates[est.type] || emptyGroupedEstimate;
+    groupedEstimates[est.type] = groupedEstimates[est.type] || Object.assign({}, emptyGroupedEstimate);
     groupedEstimates[est.type].totalCostPerGwei += est.costPerGwei;
     groupedEstimates[est.type].totalWaitTimeInMin += est.waitTimeInMin;
     groupedEstimates[est.type].numRecords += 1
@@ -129,12 +144,12 @@ const calcGroupedEstimatesAvg = (gEstimates) => {
     let estType = groupedEstimates[key];
     let avgCostPerGwei = parseFloat(estType.totalCostPerGwei / estType.numRecords).toFixed(3);
     let avgWaitTimeInMin = parseFloat(estType.totalWaitTimeInMin / estType.numRecords).toFixed(3);
-    Object.assign(estType, {
+    groupedEstimates[key] = Object.assign({}, estType, {
       avgCostPerGwei,
-      avgWaitTimeInMin
+      avgWaitTimeInMin,
+      label: key + ' < ' + Math.ceil(avgWaitTimeInMin) + 'm'
     });
   });
-
   return groupedEstimates;
 }
 
