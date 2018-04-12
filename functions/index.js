@@ -6,14 +6,14 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
 // Firebase supports Node 6.11.5 which doesn't has Object.values 
-const getObjectValues =  obj => Object.keys(obj).map(prop => obj[prop]);
+const getObjectValues = obj => Object.keys(obj).map(prop => obj[prop]);
 Object.values = Object.values || getObjectValues;
 
 //init
 admin.initializeApp();
 
 const corsOptions = {
-  origin: [/localhost/, /^canyagasstation$/, /gasstation.canya\.[com|io]+/]
+  origin: [/localhost/, /canyagasstation/, /gasstation.canya\.[com|io]+/]
 };
 
 app.use(cors(corsOptions));
@@ -142,8 +142,8 @@ const calcGroupedEstimatesAvg = (gEstimates) => {
   const groupedEstimates = Object.assign({}, gEstimates);
   Object.keys(groupedEstimates).forEach(key => {
     let estType = groupedEstimates[key];
-    let avgCostPerGwei = parseFloat(estType.totalCostPerGwei / estType.numRecords).toFixed(3);
-    let avgWaitTimeInMin = parseFloat(estType.totalWaitTimeInMin / estType.numRecords).toFixed(3);
+    let avgCostPerGwei = formatNum(estType.totalCostPerGwei / estType.numRecords, 6);
+    let avgWaitTimeInMin = formatNum(estType.totalWaitTimeInMin / estType.numRecords, 6);
     groupedEstimates[key] = Object.assign({}, estType, {
       avgCostPerGwei,
       avgWaitTimeInMin,
@@ -171,5 +171,28 @@ const getURL = (url) => {
     });
   });
 };
+
+// @Desc: Format a given number to a fixed decimal digits but removes the last 0s from the decimal part
+// @Input: Number and decimals digits required to be fixed
+// @Output: Return formatted number. Ex: 10 => 10 | 10.500 => 10.5 | 10.50500 => 10.505
+const formatNum = (number, decimals) => {
+  const num = parseFloat(number).toFixed(decimals).split('.');
+  const decimalsStr = num[1];
+
+  if (Number(decimalsStr) > 0) {
+
+    let last0Pos = 0;
+    for (let i = decimalsStr.length - 1; i >= 0; i--) {
+      if (decimalsStr[i] !== '0') {
+        last0Pos = i;
+        break;
+      }
+    }
+
+    return num[0] + '.' + decimalsStr.substr(0, last0Pos + 1);
+  }
+
+  return num[0];
+}
 
 exports.api = functions.https.onRequest(app);
