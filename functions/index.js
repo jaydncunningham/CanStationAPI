@@ -60,7 +60,9 @@ app.post('/gas-estimate', (req, res) => {
 });
 
 app.get('/gas-estimate/average', (req, res) => {
-  gasEstimatesRef.limitToLast(100).once("value", snapshot => {
+  // estimates stored every 1 minute and each estimate creates 4 records
+  // 960 records represents last 4 hours estimates (4h * 60m * 4records = 960)  
+  gasEstimatesRef.limitToLast(960).once("value", snapshot => {
     const estimates = Object.values(snapshot.val());
     const groupedEstimates = groupEstimates(estimates);
     const avgEstimates = calcGroupedEstimatesAvg(groupedEstimates);
@@ -71,7 +73,7 @@ app.get('/gas-estimate/average', (req, res) => {
 
 app.get('/gas-estimate', (req, res) => {
   // estimates stored every 1 minute and each estimate creates 4 records
-  // 240 records represents last 60 minute estimates (60 * 4 = 240)
+  // 240 records represents last 60 minute estimates (60m * 4records = 240)
   gasEstimatesRef.limitToLast(240).once("value", snapshot => {
     const estimates = Object.values(snapshot.val());
     return res.status(200).json(estimates);
