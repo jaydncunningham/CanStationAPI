@@ -1,9 +1,12 @@
 // libs
 const app = require('express')();
 const cors = require('cors');
-const request = require('request');
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { getURL, formatNum } = require('./utils');
+const ethGasStationURL = {
+  gasEstimates: 'https://ethgasstation.info/json/ethgasAPI.json'
+}
 
 // Firebase supports Node 6.11.5 which doesn't has Object.values 
 const getObjectValues = obj => Object.keys(obj).map(prop => obj[prop]);
@@ -20,9 +23,6 @@ app.use(cors(corsOptions));
 
 // vars
 const gasEstimatesRef = admin.database().ref('/gas-estimates');
-const ethGasStationURL = {
-  gasEstimates: 'https://ethgasstation.info/json/ethgasAPI.json'
-}
 
 /**
 Sample response from ethgasstation:
@@ -46,7 +46,7 @@ https://ethgasstation.info/json/ethgasAPI.json
 }
 */
 app.post('/gas-estimate', (req, res) => {
-  getURL().then(body => {
+  getURL(ethGasStationURL.gasEstimates).then(body => {
       // Format & push formated estimates to the firebase store
       formatEthGasInfoEstimatesToArray(body).forEach(item => gasEstimatesRef.push(item));
 
@@ -154,47 +154,6 @@ const calcGroupedEstimatesAvg = (gEstimates) => {
     });
   });
   return groupedEstimates;
-}
-
-// @Desc: Performs GET operation for a given URL and returns a promise
-// @Input: URL
-// @Output: Promise to be rejected with err or resolved with the response body
-const getURL = (url) => {
-  return new Promise((resolve, reject) => {
-    request.get(ethGasStationURL.gasEstimates, {
-      json: true
-    }, (err, response, body) => {
-      if (err || response.statusCode !== 200) {
-        console.log('err: ', err, ' with statusCode: ', response.statusCode);
-        return reject(err);
-      }
-
-      return resolve(body);
-    });
-  });
-};
-
-// @Desc: Format a given number to a fixed decimal digits but removes the last 0s from the decimal part
-// @Input: Number and decimals digits required to be fixed
-// @Output: Return formatted number. Ex: 10 => 10 | 10.500 => 10.5 | 10.50500 => 10.505
-const formatNum = (number, decimals) => {
-  const num = parseFloat(number).toFixed(decimals).split('.');
-  const decimalsStr = num[1];
-
-  if (Number(decimalsStr) > 0) {
-
-    let last0Pos = 0;
-    for (let i = decimalsStr.length - 1; i >= 0; i--) {
-      if (decimalsStr[i] !== '0') {
-        last0Pos = i;
-        break;
-      }
-    }
-
-    return num[0] + '.' + decimalsStr.substr(0, last0Pos + 1);
-  }
-
-  return num[0];
 }
 
 exports.api = functions.https.onRequest(app);
