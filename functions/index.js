@@ -9,14 +9,14 @@ const ethGasStationURL = {
 }
 
 // Firebase supports Node 6.11.5 which doesn't has Object.values 
-const getObjectValues = obj => Object.keys(obj).map(prop => obj[prop]);
+const getObjectValues = obj => obj ? Object.keys(obj).map(prop => obj[prop]) : [];
 Object.values = Object.values || getObjectValues;
 
 //init
 admin.initializeApp();
 
 const corsOptions = {
-  origin: [/localhost/, /canyagasstation/, /gasstation.canya\.[com|io]+/]
+  origin: [/localhost/, /canyagasstation/, /canstation/, /canstation.canya\.[com|io]+/]
 };
 
 app.use(cors(corsOptions));
