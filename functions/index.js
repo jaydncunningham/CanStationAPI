@@ -86,28 +86,28 @@ app.get('/gas-estimate', (req, res) => {
 const formatEthGasInfoEstimatesToArray = (estimateObject) => {
   return [{
       type: 'Fastest',
-      costPerGwei: Number(estimateObject.fastest) / Number(estimateObject.average_calc),
+      costPerGwei: Number(estimateObject.fastest) / 10,
       waitTimeInMin: estimateObject.fastestWait,
       blockNum: estimateObject.blockNum,
       createdAt: Date.now(),
     },
     {
       type: 'Fast',
-      costPerGwei: Number(estimateObject.fast) / Number(estimateObject.average_calc),
+      costPerGwei: Number(estimateObject.fast) / 10,
       waitTimeInMin: estimateObject.fastWait,
       blockNum: estimateObject.blockNum,
       createdAt: Date.now()
     },
     {
       type: 'Standard',
-      costPerGwei: Number(estimateObject.average) / Number(estimateObject.average_calc),
+      costPerGwei: Number(estimateObject.average) / 10,
       waitTimeInMin: estimateObject.avgWait,
       blockNum: estimateObject.blockNum,
       createdAt: Date.now(),
     },
     {
       type: 'Safelow',
-      costPerGwei: Number(estimateObject.safeLow) / Number(estimateObject.safelow_calc),
+      costPerGwei: Number(estimateObject.safeLow) / 10,
       waitTimeInMin: estimateObject.safeLowWait,
       blockNum: estimateObject.blockNum,
       createdAt: Date.now(),
