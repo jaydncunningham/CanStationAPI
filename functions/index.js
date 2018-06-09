@@ -47,6 +47,9 @@ https://ethgasstation.info/json/ethgasAPI.json
 */
 app.post('/gas-estimate', (req, res) => {
   getURL(ethGasStationURL.gasEstimates).then(body => {
+      // Remove previously stored estimates
+      gasEstimatesRef.remove();
+
       // Format & push formated estimates to the firebase store
       formatEthGasInfoEstimatesToArray(body).forEach(item => gasEstimatesRef.push(item));
 
@@ -60,9 +63,7 @@ app.post('/gas-estimate', (req, res) => {
 });
 
 app.get('/gas-estimate/average', (req, res) => {
-  // estimates stored every 1 minute and each estimate creates 4 records
-  // 240 records represents last 1 hour estimates (1h * 60m * 4records = 240)  
-  gasEstimatesRef.limitToLast(240).once("value", snapshot => {
+  gasEstimatesRef.once("value", snapshot => {
     const estimates = Object.values(snapshot.val());
     const groupedEstimates = groupEstimates(estimates);
     const avgEstimates = calcGroupedEstimatesAvg(groupedEstimates);
@@ -71,14 +72,15 @@ app.get('/gas-estimate/average', (req, res) => {
   });
 });
 
-app.get('/gas-estimate', (req, res) => {
+// app never hits this endpoint
+/*app.get('/gas-estimate', (req, res) => {
   // estimates stored every 1 minute and each estimate creates 4 records
   // 240 records represents last 60 minute estimates (60m * 4records = 240)
   gasEstimatesRef.limitToLast(240).once("value", snapshot => {
     const estimates = Object.values(snapshot.val());
     return res.status(200).json(estimates);
   });
-});
+});*/
 
 // @Desc: Convert ethgasstation results object into list of estimates
 // @Input: Object represents ethgasstation estimates
